@@ -63,9 +63,21 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opencv_world310d.lib;aruco201.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(OPENCV_DIR)\x64\vc14\lib;$(OPENCV_DIR)\lib;$(ARUCO_DIR)\bin\Debug;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_core310d.lib;opencv_calib3d310d.lib;opencv_highgui310d.lib;opencv_imgproc310d.lib;aruco201.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OPENCV_DIR)\lib\Debug;$(ARUCO_DIR)\bin\Debug;</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy / y "$(OPENCV_DIR)\bin\Debug\opencv_calib3d310d.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Debug\opencv_core310d.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Debug\opencv_features2d310d.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Debug\opencv_flann310d.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Debug\opencv_highgui310d.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Debug\opencv_imgcodecs310d.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Debug\opencv_imgproc310d.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Debug\opencv_ml310d.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Debug\opencv_videoio310d.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(ARUCO_DIR)\bin\Debug\aruco201.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -83,9 +95,20 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>opencv_world310.lib;aruco201.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(OPENCV_DIR)\x64\vc14\lib;$(OPENCV_DIR)\lib;$(ARUCO_DIR)\bin\Release;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_core310.lib;opencv_calib3d310.lib;opencv_highgui310.lib;opencv_imgproc310.lib;aruco201.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OPENCV_DIR)\lib\Release;$(ARUCO_DIR)\bin\Release;</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy / y "$(OPENCV_DIR)\bin\Release\opencv_calib3d310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_core310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_features2d310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_flann310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_highgui310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_imgcodecs310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_imgproc310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_videoio310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(ARUCO_DIR)\bin\Release\aruco201.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <ClCompile>
@@ -103,9 +126,20 @@
       <Optimization>MaxSpeed</Optimization>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>opencv_world310.lib;aruco201.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(OPENCV_DIR)\x64\vc14\lib;$(OPENCV_DIR)\lib;$(ARUCO_DIR)\bin\Release;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_core310.lib;opencv_calib3d310.lib;opencv_highgui310.lib;opencv_imgproc310.lib;aruco201.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OPENCV_DIR)\lib\Release;$(ARUCO_DIR)\bin\Release;</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy / y "$(OPENCV_DIR)\bin\Release\opencv_calib3d310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_core310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_features2d310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_flann310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_highgui310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_imgcodecs310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_imgproc310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(OPENCV_DIR)\bin\Release\opencv_videoio310.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"
+copy / y "$(ARUCO_DIR)\bin\Release\aruco201.dll" "$(SolutionDir)$(Platform)\$(Configuration)\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ProjectReference Include="RGBDStreamer\RGBDStreamer.vcxproj">
