@@ -24,9 +24,7 @@ int main()
     pKinect2->StartStream();
     FrameData frames[IRGBDStreamer::kNumBufferTypes];
     uint16_t ColorWidth, ColorHeight;
-    do {
-        pKinect2->GetColorReso(ColorWidth, ColorHeight);
-    } while (ColorHeight == 0);
+    pKinect2->GetColorReso(ColorWidth, ColorHeight);
 
     cv::Mat cameraMatrix = cv::Mat(3, 3, CV_32F, cameraParams);
     cv::Mat distorsionMatrix = cv::Mat(4, 1, CV_32F, distorsionParams);
