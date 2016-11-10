@@ -23,7 +23,7 @@ double distorsionParams[] = {
 
 // For \Vicon
 Tracking::IObjectTracking* pViconTracker;
-std::string camName = "TestVirtualCam";
+std::string camName = "TestVirtualCamera";
 std::string boardName = "RedPlane";
 
 // For Kinect
@@ -39,6 +39,8 @@ aruco::MarkerDetector markerDetector;
 std::vector<aruco::Marker> vMarkers;
 
 cv::Mat inputColMat, outputColMat, colDetectMat, tmp;
+
+char userInput;
 
 void ChangeUpVector(double pData[9])
 {
@@ -128,13 +130,32 @@ int main()
     std::vector<int> markers_from_set;
 #endif
 
-    cv::Mat camPos_vicon = cv::Mat(3, 1, CV_64F);
-    cv::Mat camRMat_vicon = cv::Mat(3, 3, CV_64F);
-    cv::Mat boardPos_vicon = cv::Mat(3, 1, CV_64F);
-    cv::Mat boardRMat_vicon = cv::Mat(3, 3, CV_64F);
-    cv::Mat boardPos_aruco = cv::Mat(3, 1, CV_64F);
-    cv::Mat boardRMat_aruco = cv::Mat(3, 3, CV_64F);
-    while (true) {
+    cv::Mat vBoardPos_cam = cv::Mat(3, 1, CV_64F);
+    cv::Mat mBoardOri_cam = cv::Mat(3, 3, CV_64F);
+    cv::Mat mBoardInvOri_cam = cv::Mat(3, 3, CV_64F);
+
+    cv::Mat vSensorPos_world = cv::Mat(3, 1, CV_64F);
+    cv::Mat mSensorOri_world = cv::Mat(3, 3, CV_64F);
+    cv::Mat mSensorInvOri_world = cv::Mat(3, 3, CV_64F);
+
+    cv::Mat vCamPos_world = cv::Mat(3, 1, CV_64F);
+    cv::Mat mCamOri_world = cv::Mat(3, 3, CV_64F);
+    cv::Mat mCamInvOri_world;
+
+    cv::Mat vBoardPos_world = cv::Mat(3, 1, CV_64F);
+    cv::Mat mBoardInvOri_world;
+    cv::Mat mBoardOri_world = cv::Mat(3, 3, CV_64F);
+
+    cv::Mat vBoardPos_sensor = cv::Mat(3, 1, CV_64F);
+    cv::Mat mBoardOri_sensor = cv::Mat(3, 3, CV_64F);
+    cv::Mat mBoardInvOri_sensor;
+
+    cv::Mat mCam2Sensor = cv::Mat::eye(3, 3, CV_64F);
+    cv::Mat mSensor2Cam = cv::Mat::eye(3, 3, CV_64F);
+    cv::Mat vCam2Sensor_world = cv::Mat::zeros(3, 1, CV_64F);
+    cv::Mat vCam2Sensor_cam = cv::Mat::zeros(3, 1, CV_64F);
+
+    while ('q' != (userInput = cv::waitKey(1))) {
 #if USE_KINECT
         pKinect2->GetNewFrames(frames[IRGBDStreamer::kColor],
             frames[IRGBDStreamer::kDepth], frames[IRGBDStreamer::kInfrared]);
@@ -150,10 +171,10 @@ int main()
 
         if (pViconTracker->IsConnected()) {
             pViconTracker->Update();
-            getPosistion(camName, camPos_vicon);
-            getRotationMat(camName, camRMat_vicon);
-            getPosistion(boardName, boardPos_vicon);
-            getRotationMat(boardName, boardRMat_vicon);
+            getPosistion(camName, vCamPos_world);
+            getRotationMat(camName, mCamOri_world);
+            getPosistion(boardName, vBoardPos_world);
+            getRotationMat(boardName, mBoardOri_world);
         }
 
         cv::cvtColor(inputColMat, tmp, CV_BGRA2RGBA);
@@ -182,11 +203,12 @@ int main()
                 //MSPoseTracker.getRvec(), zeroT,
                 MSPoseTracker.getRvec(), MSPoseTracker.getTvec(),
                 TheMarkerMapConfig[0].getMarkerSize() * 2);
-            boardPos_aruco = MSPoseTracker.getTvec().clone();
-            boardPos_aruco.convertTo(boardPos_aruco, CV_64F);
-            transpose(boardPos_aruco, boardPos_aruco);
-            boardRMat_aruco = MSPoseTracker.getRTMatrix()(cv::Rect(0,0,3,3));
-            boardRMat_aruco.convertTo(boardRMat_aruco, CV_64F);
+            vBoardPos_sensor = MSPoseTracker.getTvec().clone();
+            vBoardPos_sensor.convertTo(vBoardPos_sensor, CV_64F);
+            transpose(vBoardPos_sensor, vBoardPos_sensor);
+            mBoardOri_sensor = MSPoseTracker.getRTMatrix()(cv::Rect(0,0,3,3));
+            mBoardOri_sensor.convertTo(mBoardOri_sensor, CV_64F);
+            transpose(mBoardOri_sensor, mBoardInvOri_sensor);
         }
 #else
         for (unsigned int i = 0; i < vMarkers.size(); i++) {
@@ -198,26 +220,31 @@ int main()
             aruco::CvDrawingUtils::draw3dAxis(outputColMat, vMarkers[i], cp);
         }
 #endif
-        cv::Mat boardPos_vicon_inCamSpace = boardPos_vicon - camPos_vicon;
-        cv::Mat camInvRMat_vicon;
-        cv::transpose(camRMat_vicon, camInvRMat_vicon);
-        cv::Mat vBoardPos_camSpace =
-            camInvRMat_vicon * boardPos_vicon_inCamSpace;
+        cv::transpose(mCamOri_world, mCamInvOri_world);
+        vBoardPos_cam = mCamInvOri_world * (vBoardPos_world - vCamPos_world);
 
-        cv::Mat boardInvRMat_vicon;
-        cv::transpose(boardRMat_vicon, boardInvRMat_vicon);
-        cv::Mat m = camInvRMat_vicon * boardRMat_vicon;
+        cv::transpose(mBoardOri_world, mBoardInvOri_world);
+        mBoardOri_cam = mCamInvOri_world * mBoardOri_world;
 
-        cv::Mat mVCam2Sensor =
-            boardRMat_aruco * boardInvRMat_vicon * camRMat_vicon;
-        cv::Mat mSensor2VCam = cv::Mat(3, 3, CV_64F);
-        transpose(mVCam2Sensor, mSensor2VCam);
+        if (userInput == 'c') {
+            mSensorOri_world =
+                mCamOri_world * mBoardOri_cam * mBoardInvOri_sensor;
+            transpose(mSensorOri_world, mSensorInvOri_world);
+            vSensorPos_world = mCamOri_world * vBoardPos_cam +
+                vCamPos_world - mSensorOri_world * vBoardPos_sensor;
+            vCam2Sensor_cam = mCamInvOri_world * (vSensorPos_world - vCamPos_world);
 
-        cv::Mat mOffsetInCam =
-            mSensor2VCam * boardPos_aruco - boardPos_vicon_inCamSpace;
+            mCam2Sensor =
+                mBoardOri_sensor * mBoardInvOri_world * mCamOri_world;
+            transpose(mCam2Sensor, mSensor2Cam);
+            std::cout << "Calibration Done" << std::endl;
+        }
 
-        aruco::CvDrawingUtils::draw3dAxis(outputColMat, cp, mVCam2Sensor * m,
-            mVCam2Sensor * (mOffsetInCam + boardPos_vicon_inCamSpace), 0.15);
+        cv::Mat trans;
+        transpose( mCam2Sensor * (vBoardPos_cam - vCam2Sensor_cam), trans);
+        std::cout << trans << std::endl;
+        aruco::CvDrawingUtils::draw3dAxis(outputColMat, cp, mCam2Sensor * mBoardOri_cam,
+            trans, 0.15);
         cv::imshow("Sensor0", outputColMat);
         // WaitKey is essential for imshow to work properly in loop
         cv::waitKey(10);
