@@ -21,7 +21,7 @@ double distorsionParams[] = {
     2.9149065825195806e-02f, -2.9654300241936486e-02f,
     -8.0282793629378685e-04f, -1.0993038057764051e-03f };
 
-// For \Vicon
+// For Vicon
 Tracking::IObjectTracking* pViconTracker;
 std::string camName = "TestVirtualCamera";
 std::string boardName = "RedPlane";
@@ -87,6 +87,18 @@ void getRotationMat(const std::string& name, cv::Mat& R)
         pMat[4], pMat[5], pMat[6], pMat[7], pMat[8]);
 }
 
+void computeTransMatrix(
+    const cv::Mat& mOri, const cv::Mat& vPos, cv::Mat& mTo, cv::Mat& mFrom)
+{
+    cv::Mat tmpM, tmpV;
+    cv::transpose(mOri, tmpM);
+    tmpM.copyTo(mTo(cv::Rect(0, 0, 3, 3)));
+    vPos.copyTo(mTo(cv::Rect(3, 0, 1, 3)));
+    tmpV = -mOri * vPos;
+    mOri.copyTo(mFrom(cv::Rect(0, 0, 3, 3)));
+    tmpV.copyTo(mFrom(cv::Rect(3, 0, 1, 3)));
+}
+
 int main()
 {
     outputColMat = cv::Mat(1080, 1920, CV_8UC4);
@@ -132,7 +144,7 @@ int main()
 
     cv::Mat vBoardPos_cam = cv::Mat(3, 1, CV_64F);
     cv::Mat mBoardOri_cam = cv::Mat(3, 3, CV_64F);
-    cv::Mat mBoardInvOri_cam = cv::Mat(3, 3, CV_64F);
+    cv::Mat v4BoardPos_cam = cv::Mat::eye(4, 1, CV_64F);
 
     cv::Mat vSensorPos_world = cv::Mat(3, 1, CV_64F);
     cv::Mat mSensorOri_world = cv::Mat(3, 3, CV_64F);
@@ -140,20 +152,20 @@ int main()
 
     cv::Mat vCamPos_world = cv::Mat(3, 1, CV_64F);
     cv::Mat mCamOri_world = cv::Mat(3, 3, CV_64F);
-    cv::Mat mCamInvOri_world;
+    cv::Mat mCamInvOri_world = cv::Mat(3, 3, CV_64F);
 
     cv::Mat vBoardPos_world = cv::Mat(3, 1, CV_64F);
-    cv::Mat mBoardInvOri_world;
     cv::Mat mBoardOri_world = cv::Mat(3, 3, CV_64F);
+    cv::Mat mBoardInvOri_world = cv::Mat(3, 3, CV_64F);
 
     cv::Mat vBoardPos_sensor = cv::Mat(3, 1, CV_64F);
     cv::Mat mBoardOri_sensor = cv::Mat(3, 3, CV_64F);
-    cv::Mat mBoardInvOri_sensor;
+    cv::Mat mBoardInvOri_sensor = cv::Mat(3, 3, CV_64F);
 
-    cv::Mat mCam2Sensor = cv::Mat::eye(3, 3, CV_64F);
-    cv::Mat mSensor2Cam = cv::Mat::eye(3, 3, CV_64F);
-    cv::Mat vCam2Sensor_world = cv::Mat::zeros(3, 1, CV_64F);
-    cv::Mat vCam2Sensor_cam = cv::Mat::zeros(3, 1, CV_64F);
+    cv::Mat mTransform_Cam2Sensor = cv::Mat::eye(4, 4, CV_64F);
+
+    cv::Mat zeroT = cv::Mat::zeros(3, 1, CV_64F);
+    zeroT.at<double>(0, 2) = 1.5f;
 
     while ('q' != (userInput = cv::waitKey(1))) {
 #if USE_KINECT
@@ -168,13 +180,15 @@ int main()
 #else
         inputColMat = cv::Mat(1080, 1920, CV_8UC4, cv::Scalar(1, 1, 1, 1));
 #endif
-
         if (pViconTracker->IsConnected()) {
             pViconTracker->Update();
             getPosistion(camName, vCamPos_world);
             getRotationMat(camName, mCamOri_world);
+            cv::transpose(mCamOri_world, mCamInvOri_world);
+
             getPosistion(boardName, vBoardPos_world);
             getRotationMat(boardName, mBoardOri_world);
+            cv::transpose(mBoardOri_world, mBoardInvOri_world);
         }
 
         cv::cvtColor(inputColMat, tmp, CV_BGRA2RGBA);
@@ -182,10 +196,6 @@ int main()
         // we need to flip it back;
         cv::flip(tmp, outputColMat, 1);
         cv::cvtColor(outputColMat, colDetectMat, CV_BGRA2GRAY);
-
-
-        cv::Mat zeroT = cv::Mat::zeros(3, 1, CV_64F);
-        zeroT.at<double>(0, 2) = 1.5f;
 
         vMarkers.clear();
         vMarkers = markerDetector.detect(colDetectMat, cp, markerSize);
@@ -220,33 +230,38 @@ int main()
             aruco::CvDrawingUtils::draw3dAxis(outputColMat, vMarkers[i], cp);
         }
 #endif
-        cv::transpose(mCamOri_world, mCamInvOri_world);
         vBoardPos_cam = mCamInvOri_world * (vBoardPos_world - vCamPos_world);
-
-        cv::transpose(mBoardOri_world, mBoardInvOri_world);
         mBoardOri_cam = mCamInvOri_world * mBoardOri_world;
 
         if (userInput == 'c') {
             mSensorOri_world =
                 mCamOri_world * mBoardOri_cam * mBoardInvOri_sensor;
-            transpose(mSensorOri_world, mSensorInvOri_world);
-            vSensorPos_world = mCamOri_world * vBoardPos_cam +
-                vCamPos_world - mSensorOri_world * vBoardPos_sensor;
-            vCam2Sensor_cam = mCamInvOri_world * (vSensorPos_world - vCamPos_world);
+            cv::transpose(mSensorOri_world, mSensorInvOri_world);
+            vSensorPos_world = mCamOri_world * vBoardPos_cam -
+                mSensorOri_world * vBoardPos_sensor + vCamPos_world;
 
-            mCam2Sensor =
-                mBoardOri_sensor * mBoardInvOri_world * mCamOri_world;
-            transpose(mCam2Sensor, mSensor2Cam);
+            cv::Mat RsTRc = mSensorInvOri_world * mCamOri_world;
+            cv::Mat Tran =
+                mSensorInvOri_world * (vCamPos_world - vSensorPos_world);
+            RsTRc.copyTo(mTransform_Cam2Sensor(cv::Rect(0, 0, 3, 3)));
+            Tran.copyTo(mTransform_Cam2Sensor(cv::Rect(3, 0, 1, 3)));
+            mTransform_Cam2Sensor.at<double>(3, 0) = 0.0;
+            mTransform_Cam2Sensor.at<double>(3, 1) = 0.0;
+            mTransform_Cam2Sensor.at<double>(3, 2) = 0.0;
+            mTransform_Cam2Sensor.at<double>(3, 3) = 1.0;
             std::cout << "Calibration Done" << std::endl;
         }
-
-        cv::Mat trans;
-        transpose( mCam2Sensor * (vBoardPos_cam - vCam2Sensor_cam), trans);
-        std::cout << trans << std::endl;
-        aruco::CvDrawingUtils::draw3dAxis(outputColMat, cp, mCam2Sensor * mBoardOri_cam,
-            trans, 0.15);
+        vBoardPos_cam.copyTo(v4BoardPos_cam(cv::Rect(0, 0, 1, 3)));
+        cv::Mat v4BoardPos_sensor = mTransform_Cam2Sensor * v4BoardPos_cam;
+        cv::Mat trans(3, 1, CV_64F), tTrans(3, 1, CV_64F);
+        cv::Mat rotation(3, 3, CV_64F);
+        mTransform_Cam2Sensor(cv::Rect(0, 0, 3, 3)).copyTo(rotation);
+        v4BoardPos_sensor(cv::Rect(0, 0, 1, 3)).copyTo(trans);
+        mTransform_Cam2Sensor(cv::Rect(3, 0, 1, 3)).copyTo(tTrans);
+        cv::transpose(tTrans, tTrans);
+        cv::transpose(trans, trans);
+        aruco::CvDrawingUtils::draw3dAxis(
+            outputColMat, cp, rotation * mBoardOri_cam, trans + tTrans, 0.15);
         cv::imshow("Sensor0", outputColMat);
-        // WaitKey is essential for imshow to work properly in loop
-        cv::waitKey(10);
     }
 }
